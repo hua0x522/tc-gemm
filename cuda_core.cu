@@ -5,11 +5,11 @@ __global__ void cuda_core_kernel(int M, int N, int K, half* d_A, half* d_B, half
     int m = blockIdx.x * blockDim.x + threadIdx.x;
     int n = blockIdx.y * blockDim.y + threadIdx.y;
 
-    half sum = 0.0;
+    float sum = 0.0;
     for (int k = 0; k < K; k++) {
-        sum += d_A[m * K + k] * d_B[k * N + n];
+        sum += __half2float(d_A[m * K + k]) * __half2float(d_B[k * N + n]);
     }
-    d_C[m * N + n] = sum;
+    d_C[m * N + n] = __float2half(sum);
 }
 
 void cuda_core(int M, int N, int K, half* h_A, half* h_B, half* h_C) {

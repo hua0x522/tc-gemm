@@ -11,7 +11,7 @@ __global__ void mma_base_kernel(int M, int N, int K, half* d_A, half* d_B, half*
     const int k_tiles = ROUND(K, MMA_K);
     const int warp_row = blockIdx.x * MMA_M;
     const int warp_col = blockIdx.y * MMA_N;
-    const int lane_id = threadIdx.x % WARP_SIZE;
+    const int lane_id = (threadIdx.x + threadIdx.y * blockDim.x) % WARP_SIZE;
 
     __shared__ half A_smem[MMA_M][MMA_K];
     __shared__ half B_smem[MMA_N][MMA_K];
@@ -19,7 +19,7 @@ __global__ void mma_base_kernel(int M, int N, int K, half* d_A, half* d_B, half*
 
     uint32_t RA[4];
     uint32_t RB[2];
-    uint32_t RC[2] = {0, 0};
+    uint32_t RC[4] = {0, 0, 0, 0};
 
     for (size_t i = 0; i < k_tiles; i++) {
         *((int4*)(&A_smem[lane_id / 2][0]) + lane_id % 2) = 
@@ -38,13 +38,14 @@ __global__ void mma_base_kernel(int M, int N, int K, half* d_A, half* d_B, half*
         uint32_t B_smem_lane_addr = __cvta_generic_to_shared(&B_smem[lane_id % 8][((lane_id / 8) % 2) * 8]);
         LDMATRIX_X2(RB[0], RB[1], B_smem_lane_addr);
 
-        HMMA16816(RC[0], RC[1], RA[0], RA[1], RA[2], RA[3], RB[0], RB[1], RC[0], RC[1]);
+        HMMA16816(RC[0], RC[1], RC[2], RC[3], RA[0], RA[1], RA[2], RA[3], RB[0], RB[1], RC[0], RC[1], RC[2], RC[3]);
 
         __syncthreads();
     }
-
-    *((uint32_t *)(&C_smem[lane_id / 4][0]) + lane_id % 4) = RC[0];
-    *((uint32_t *)(&C_smem[lane_id / 4 + 8][0]) + lane_id % 4) = RC[1];
+    C_smem[lane_id / 4][(lane_id % 4) * 2] = __float2half(*((float*)&RC[0]));
+    C_smem[lane_id / 4][(lane_id % 4) * 2 + 1] = __float2half(*((float*)&RC[1]));
+    C_smem[lane_id / 4 + 8][(lane_id % 4) * 2] = __float2half(*((float*)&RC[2]));
+    C_smem[lane_id / 4 + 8][(lane_id % 4) * 2 + 1] = __float2half(*((float*)&RC[3]));
 
     __syncthreads();
 
@@ -72,7 +73,7 @@ void mma_base(int M, int N, int K, half* h_A, half* h_B, half* h_C) {
     gettimeofday(&tv, nullptr);
     start = tv.tv_sec + tv.tv_usec / 1.0e6;
 
-    mma_base_kernel<<<dim3(ROUND(M, 16), ROUND(N, 16)), dim3(16, 16)>>>(M, N, K, d_A, d_B, d_C);
+    mma_base_kernel<<<dim3(ROUND(M, 16), ROUND(N, 8)), dim3(8, 4)>>>(M, N, K, d_A, d_B, d_C);
 
     cudaDeviceSynchronize();
     gettimeofday(&tv, nullptr);

@@ -2,8 +2,10 @@
 
 half* random_data(int size) {
     half* handle = (half*)malloc(size * sizeof(half));
+    float sign = 1;
     for (int i = 0; i < size; i++) {
-        handle[i] = (1.0 * (rand() % 10000)) / 100.0;
+        handle[i] = sign * (1.0 * (i % 10)) / 10.0;
+        sign = -sign;
     }
     return handle;
 }
