@@ -16,6 +16,14 @@ half* empty_data(int size) {
     return handle;
 }
 
+half* copy_data(half* data, int size) {
+    half* handle = (half*)malloc(size * sizeof(half));
+    for (int i = 0; i < size; i++) {
+        handle[i] = data[i];
+    }
+    return handle;
+}
+
 void transpose(half* matrix, int m, int n) {
     for (int i = 0; i < m; i++) {
         for (int j = 0; j < i; j++) {

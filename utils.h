@@ -12,6 +12,8 @@ half* random_data(int size);
 
 half* empty_data(int size);
 
+half* copy_data(half* data, int size);
+
 void transpose(half* matrix, int m, int n);
 
 void check(half* A, half* B, int size);

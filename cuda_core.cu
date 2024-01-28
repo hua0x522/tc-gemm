@@ -1,6 +1,7 @@
 #include "utils.h"
+#include "cuda_core.cuh"
 
-__global__ void matmul_kernel(int M, int N, int K, half* d_A, half* d_B, half* d_C) {
+__global__ void cuda_core_kernel(int M, int N, int K, half* d_A, half* d_B, half* d_C) {
     int m = blockIdx.x * blockDim.x + threadIdx.x;
     int n = blockIdx.y * blockDim.y + threadIdx.y;
 
@@ -28,7 +29,7 @@ void cuda_core(int M, int N, int K, half* h_A, half* h_B, half* h_C) {
     gettimeofday(&tv, nullptr);
     start = tv.tv_sec + tv.tv_usec / 1.0e6;
 
-    matmul_kernel<<<dim3(ROUND(M, 16), ROUND(N, 16)), dim3(16, 16)>>>(M, N, K, d_A, d_B, d_C);
+    cuda_core_kernel<<<dim3(ROUND(M, 16), ROUND(N, 16)), dim3(16, 16)>>>(M, N, K, d_A, d_B, d_C);
 
     cudaDeviceSynchronize();
     gettimeofday(&tv, nullptr);
