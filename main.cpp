@@ -1,6 +1,7 @@
 #include "utils.h"
 #include "cuda_core.cuh"
 #include "base.cuh"
+#include "multi_warp.cuh"
 
 int main(int argc, char* argv[]) {
     if (argc != 4) {
@@ -21,8 +22,9 @@ int main(int argc, char* argv[]) {
     half* B = copy_data(h_B, k * n);
     half* C = empty_data(m * n);
 
-    cuda_core(m, n, k, h_A, h_B, h_C);
-    mma_base(m, n, k, h_A, B, C);
+    // cuda_core(m, n, k, h_A, h_B, h_C);
+    mma_base(m, n, k, h_A, h_B, h_C);
+    multi_warp(m, n, k, h_A, B, C);
 
     check(h_C, C, m * n);
     return 0;
